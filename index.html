@@ -1,457 +1,235 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Africa interactive map — demo</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    /* Layout */
+<div id="africaMap">
+  <svg id="africaSvg" aria-label="Africa map"></svg>
 
-/* Defining the color paletter according to ASU standards (Can be used or replicated and tinkered with as needed) */
-    :root{
-  --asu-black: #000000;
-  --asu-gold: rgb(255,198,39); /* #FFC627 */
-  --asu-maroon: rgb(140,29,64); /* #8C1D40 */
-  --line-opacity: 0.04; /* line opacity */
-}
-
-/* Prevent nested scrollbars inside the map block */
-.wrap, .map-wrap {
-  overflow: hidden !important;
-}
-
-/* Remove max-height cap that can cause awkward scrolling/cropping */
-#mapSvg {
-  max-height: none !important;
-}
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: transparent;
-      color: #eee;
-    }
-
-    .page {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 24px 16px 80px;
-    }
-
-    h1 {
-      margin: 0 0 14px;
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: .2px;
-    }
-
-    p.sub {
-      margin: 0 0 18px;
-      color: #cfcfcf;
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .wrap {
-      position: relative;
-      background: transparent;
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0,0,0,.35);
-    }
-
-    .map-wrap {
-      position: relative;
-      width: 100%;
-      /* the SVG height is set dynamically in JS to preserve aspect ratio */
-    }
-
-    /* SVG */
-    svg {
-      display: block;
-      width: 100%;
-      height: auto;           /* allow svg to determine height from viewBox */
-      max-height: 1200px;     /* optional cap can be removed based or edited based on the usage requirement*/
-    }
-    #mapSvg
-    {
-      background: transparent;
-      cursor: grab;
-    }
-    #mapSvg.dragging {
-      cursor: grabbing;
-    }
-
-    /* Countries */
-    .country {
-      fill: rgb(121, 116, 116);
-      stroke: rgba(255,255,255,var(--line-opacity));
-      stroke-width: 0.7;
-      vector-effect: non-scaling-stroke;
-      transition: fill .12s ease, stroke .12s ease, opacity .12s ease;
-    }
-
-    .country.has-data {
-      fill: rgba(255,198,39); /* asu gold tint */
-      cursor: pointer;
-    }
-
-    .country.has-data.hover {
-      fill: rgba(255,198,39,0.5);
-      stroke: rgba(255,255,255,0.25);
-    }
-
-    .country.has-data.active {
-      fill: rgba(140,29,64,0.65); /* asu maroon tint */
-      stroke: rgba(255,255,255,0.35);
-    }
-
-    /* NEW: make no-data countries not clickable */
-    .country.no-data{
-      pointer-events: none;
-      cursor: default;
-      opacity: 0.6;
-    }
-
-    /* Loading */
-    .loading {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      color: rgba(255,255,255,0.8);
-      font-size: 14px;
-      background: linear-gradient(0deg, rgba(0,0,0,0.25), rgba(0,0,0,0.25));
-      z-index: 2;
-      pointer-events: none;
-    }
-
-    /* Info card (modal-ish) */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.35);
-      display: none;
-      z-index: 10;
-    }
-
-    .card {
-      position: fixed;
-      z-index: 11;
-      width: 320px;
-      max-width: calc(100vw - 24px);
-      background: #1a1a1a;
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      box-shadow: 0 18px 70px rgba(0,0,0,.55);
-      padding: 14px 14px 12px;
-      display: none;
-    }
-
-    .card header{
-      display:flex;
-      align-items:flex-start;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .card h2{
-      font-size: 16px;
-      margin: 0;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .close-btn{
-      border: none;
-      background: rgba(255,255,255,0.08);
-      color: #fff;
-      border-radius: 10px;
-      width: 30px;
-      height: 30px;
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-    }
-    .close-btn:hover{ background: rgba(255,255,255,0.14); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .stat {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 10px;
-    }
-    .stat .label {
-      font-size: 11px;
-      color: rgba(255,255,255,0.7);
-      margin-bottom: 4px;
-      letter-spacing: .2px;
-    }
-    .stat .value{
-      font-size: 14px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .hint {
-      padding: 10px 12px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.75);
-      border-top: 1px solid rgba(255,255,255,0.07);
-      background: rgba(0,0,0,0.15);
-    }
-  </style>
-</head>
-
-<body>
-  <div class="page">
-
-    <div class="wrap">
-      <div class="map-wrap" id="mapWrap">
-        <div class="loading" id="loadingText">Loading map…</div>
-        <svg id="mapSvg" aria-label="Africa map"></svg>
-      </div>
-      <div class="hint">
-        Tip: scroll to zoom • drag to pan • double-click to reset
-      </div>
+  <!-- Card stays inside the same container (no page overlay) -->
+  <div id="africaCard" role="dialog" aria-label="Country details">
+    <div class="cardHead">
+      <div id="africaCardTitle">Country</div>
+      <button id="africaCardClose" type="button" aria-label="Close">×</button>
+    </div>
+    <div class="cardGrid">
+      <div class="stat"><div class="lbl">Population</div><div class="val" id="popVal">—</div></div>
+      <div class="stat"><div class="lbl">2050 Projection</div><div class="val" id="projVal">—</div></div>
+      <div class="stat"><div class="lbl">Universities</div><div class="val" id="uniVal">—</div></div>
+      <div class="stat"><div class="lbl">Youth %</div><div class="val" id="youthVal">—</div></div>
     </div>
   </div>
+</div>
 
-  <div class="overlay" id="overlay"></div>
+<style>
+  /* Single embed block styling (edit to match ASU theme) */
+  #africaMap{
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    overflow: hidden;          /* critical: prevents inner scrollbars */
+    border-radius: 14px;
+    background: #fff;
+  }
+  #africaSvg{
+    display:block;
+    width:100%;
+    height:100%;
+  }
 
-  <div class="card" id="infoCard" role="dialog" aria-modal="true" aria-label="Country details">
-    <header>
-      <h2 id="cardTitle">Country</h2>
-      <button class="close-btn" id="closeBtn" aria-label="Close">×</button>
-    </header>
+  .country{
+    fill: rgba(0,0,0,0.08);
+    stroke: rgba(0,0,0,0.10);
+    stroke-width: 0.7;
+    vector-effect: non-scaling-stroke;
+  }
+  .country.has-data{ fill: rgba(255,198,39,0.60); cursor:pointer; }
+  .country.has-data.hover{ fill: rgba(255,198,39,0.80); }
+  .country.has-data.active{ fill: rgba(140,29,64,0.75); }
 
-    <div class="grid">
-      <div class="stat">
-        <div class="label">Population (current)</div>
-        <div class="value" id="popVal">—</div>
-      </div>
-      <div class="stat">
-        <div class="label">Projected population (2050)</div>
-        <div class="value" id="projVal">—</div>
-      </div>
-      <div class="stat">
-        <div class="label">Universities</div>
-        <div class="value" id="uniVal">—</div>
-      </div>
-      <div class="stat">
-        <div class="label">Youth %</div>
-        <div class="value" id="youthVal">—</div>
-      </div>
-    </div>
-  </div>
+  /* no-data countries: NOT clickable */
+  .country.no-data{ pointer-events:none; opacity:0.7; }
 
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  /* Card inside same container */
+  #africaCard{
+    position:absolute;
+    display:none;
+    width: 320px;
+    max-width: calc(100% - 20px);
+    background:#111;
+    color:#fff;
+    border:1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+    padding: 12px;
+    z-index: 5;
+  }
+  .cardHead{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom: 8px;
+  }
+  #africaCardTitle{ font-weight: 700; font-size: 15px; }
+  #africaCardClose{
+    width:30px; height:30px;
+    border:none; border-radius:10px;
+    background: rgba(255,255,255,0.10);
+    color:#fff; cursor:pointer;
+    font-size:18px; line-height:1;
+  }
+  #africaCardClose:hover{ background: rgba(255,255,255,0.16); }
 
-  <script>
-  // GeoJSON source (Africa-only). Can be replaced with any JSon file of map as needed.
-  // we can later upgrade to more accurate maps with islands represented in them this version is missing some islands
+  .cardGrid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat{
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 8px;
+  }
+  .lbl{ font-size: 11px; opacity: 0.75; margin-bottom: 3px; }
+  .val{ font-size: 13px; font-weight: 700; }
+</style>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(() => {
   const geoUrl = "https://raw.githubusercontent.com/LiaScript/GeoJson/master/africa.geo.json";
 
-  // Sample stats keyed by ISO_A3 (replace with our actual data).
-  // You can instead fetch a JSON/CSV file and replace 'stats' at runtime.
+  // Replace with your real dataset (ISO_A3 keys)
   const stats = {
     "NGA": { country: "Nigeria", population: "223,804,632", projected2050: "401,000,000", universities: 170, youth_pct: "60%" },
     "EGY": { country: "Egypt", population: "104,258,327", projected2050: "151,000,000", universities: 120, youth_pct: "50%" },
     "ZAF": { country: "South Africa", population: "60,041,994", projected2050: "67,000,000", universities: 125, youth_pct: "43%" }
-    // add other ISO_A3 keys...
   };
 
-  // DOM refs
-  const mapWrap = document.getElementById("mapWrap");
-  const svg = d3.select("#mapSvg");
-  const loadingText = document.getElementById("loadingText");
-  const overlay = document.getElementById("overlay");
+  const root = document.getElementById("africaMap");
+  const svg = d3.select("#africaSvg");
+  const card = document.getElementById("africaCard");
+  const closeBtn = document.getElementById("africaCardClose");
 
-  const infoCard = d3.select("#infoCard");
-  const cardTitle = d3.select("#cardTitle");
-  const popVal = d3.select("#popVal");
-  const projVal = d3.select("#projVal");
-  const uniVal = d3.select("#uniVal");
-  const youthVal = d3.select("#youthVal");
-  const closeBtn = document.getElementById("closeBtn");
+  const cardTitle = document.getElementById("africaCardTitle");
+  const popVal = document.getElementById("popVal");
+  const projVal = document.getElementById("projVal");
+  const uniVal  = document.getElementById("uniVal");
+  const youthVal= document.getElementById("youthVal");
 
-  // ViewBox base size (we keep projection in this coordinate system)
-  const widthBase = 900;
-  const heightBase = 900;
+  const widthBase = 900, heightBase = 900;
 
-  // D3 projection/path
   const projection = d3.geoMercator();
   const path = d3.geoPath(projection);
-const ro = new ResizeObserver(() => resizeOnly());
-ro.observe(mapWrap);
-requestAnimationFrame(resizeOnly);
-setTimeout(resizeOnly, 150);
 
-  let africaGeo = null;
   let countriesGroup = null;
 
-  // Zoom behavior
+  // zoom purely transforms a <g> (fast)
   const zoomBehavior = d3.zoom()
     .scaleExtent([1, 8])
     .translateExtent([[0, 0], [widthBase, heightBase]])
     .extent([[0, 0], [widthBase, heightBase]])
-    .on("start", () => svg.classed("dragging", true))
-    .on("end", () => svg.classed("dragging", false))
     .on("zoom", (event) => {
       if (countriesGroup) countriesGroup.attr("transform", event.transform);
     });
 
   svg.call(zoomBehavior);
+  svg.on("dblclick.zoom", null);
+  svg.on("dblclick", () => svg.transition().duration(450).call(zoomBehavior.transform, d3.zoomIdentity));
 
-  // Close handlers
-  function hideCard() {
-    overlay.style.display = "none";
-    infoCard.style("display", "none");
-    // clear active highlight
+  function hideCard(){
+    card.style.display = "none";
     if (countriesGroup) countriesGroup.selectAll(".country").classed("active", false);
   }
-
-  overlay.addEventListener("click", hideCard);
   closeBtn.addEventListener("click", hideCard);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") hideCard();
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideCard(); });
+
+  // Click outside card (inside same block) closes it
+  root.addEventListener("click", (e) => {
+    if (card.style.display === "none") return;
+    if (!card.contains(e.target)) hideCard();
   });
 
-  // Load GeoJSON and draw
+  function resizeToContainer(){
+    const w = Math.max(320, root.getBoundingClientRect().width);
+    const h = (w * heightBase) / widthBase;
+    root.style.height = h + "px";
+    svg.style("height", "100%");
+  }
+
+  function showCardAt(clientX, clientY){
+    card.style.display = "block";
+    const r = root.getBoundingClientRect();
+
+    // Convert viewport coords -> container coords
+    let left = (clientX - r.left) + 12;
+    let top  = (clientY - r.top) + 12;
+
+    // clamp within container
+    const cr = card.getBoundingClientRect();
+    const maxLeft = r.width - cr.width - 10;
+    const maxTop  = r.height - cr.height - 10;
+
+    if (left > maxLeft) left = Math.max(10, maxLeft);
+    if (top  > maxTop)  top  = Math.max(10, maxTop);
+    if (left < 10) left = 10;
+    if (top  < 10) top  = 10;
+
+    card.style.left = left + "px";
+    card.style.top  = top  + "px";
+  }
+
   d3.json(geoUrl).then(geo => {
-    loadingText.style.display = "none";
-    africaGeo = geo;
+    svg
+      .attr("viewBox", `0 0 ${widthBase} ${heightBase}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // set viewBox for predictable coordinates
-    svg.attr("viewBox", `0 0 ${widthBase} ${heightBase}`);
+    projection.fitExtent([[22,22],[widthBase-22,heightBase-22]], geo);
 
-    // append group for countries
     countriesGroup = svg.append("g").attr("class", "countries");
 
-    countriesGroup.selectAll("path")
-      .data(geo.features)
-      .join("path")
-        .attr("class", d => {
-          const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
-          // Automatically add 'has-data' class if country exists in stats
-          return stats[iso] ? "country has-data" : "country no-data";
-        })
-        .attr("d", path) // initial draw (projection will be fit below)
-        .attr("data-name", d => d.properties.ADMIN || d.properties.name || "")
-        .attr("data-iso-a3", d => d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "")
-        // Change #3: remove raise() for cheaper hover behavior
-        .on("mouseover", function() { d3.select(this).classed("hover", true); })
-        .on("mouseout", function() { d3.select(this).classed("hover", false); })
-        .on("click", function(event, d) {
-          // Countries without data are not interactive
-          const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
-          if (!stats[iso]) return;
+    const features = geo.features.map(f => {
+      const p = f.properties || {};
+      const iso = p.ISO_A3 || p.iso_a3 || p.ID || "";
+      const name = p.ADMIN || p.name || iso;
+      const hasData = !!stats[iso];
+      f.__iso = iso; f.__name = name; f.__hasData = hasData;
+      return f;
+    });
 
-          // prevent document handler closing immediately
+    countriesGroup.selectAll("path")
+      .data(features)
+      .join("path")
+        .attr("class", d => d.__hasData ? "country has-data" : "country no-data")
+        .attr("d", path)
+        .on("mouseover", function(_, d){
+          if (!d.__hasData) return;
+          d3.select(this).classed("hover", true);
+        })
+        .on("mouseout", function(_, d){
+          if (!d.__hasData) return;
+          d3.select(this).classed("hover", false);
+        })
+        .on("click", function(event, d){
+          if (!d.__hasData) return;     // not clickable
           event.stopPropagation();
 
-          // set active class
           countriesGroup.selectAll(".country").classed("active", false);
           d3.select(this).classed("active", true);
 
-          // read name
-          const name = d.properties.ADMIN || d.properties.name || iso;
+          const data = stats[d.__iso];
+          cardTitle.textContent = data.country || d.__name;
+          popVal.textContent = data.population ?? "N/A";
+          projVal.textContent = data.projected2050 ?? "N/A";
+          uniVal.textContent = data.universities ?? "N/A";
+          youthVal.textContent = data.youth_pct ?? "N/A";
 
-          // populate card from stats (fallback if missing)
-          const data = stats[iso] || { country: name, population: "N/A", projected2050: "N/A", universities: "N/A", youth_pct: "N/A" };
-          cardTitle.text(data.country);
-          popVal.text(data.population);
-          projVal.text(data.projected2050);
-          uniVal.text(data.universities);
-          youthVal.text(data.youth_pct);
-
-          // show modal overlay + card near the click using client coords
-          const clientX = event.clientX;
-          const clientY = event.clientY;
-          showCardAtClient(clientX, clientY);
+          showCardAt(event.clientX, event.clientY);
         });
 
-    // double click to reset zoom
-    svg.on("dblclick.zoom", null); // disable default dblclick zoom
-    svg.on("dblclick", () => {
-      svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
-    });
-
-    // Change #1: Fit + render once, resize only adjusts CSS size
-    fitProjectionOnce();
-    renderPathsOnce();
-    resizeOnly();
-    window.addEventListener("resize", debounce(resizeOnly, 120));
-  }).catch(err => {
-    loadingText.textContent = "Failed to load map. Check network / GeoJSON URL.";
-    console.error("GeoJSON load error:", err);
-  });
-
-  // Fit / render / resize helpers
-  // (Projection fitting + path generation are expensive; do them once.)
-  function fitProjectionOnce() {
-    if (!africaGeo) return;
-    const margin = 22;
-    projection.fitExtent([[margin, margin], [widthBase - margin, heightBase - margin]], africaGeo);
-  }
-
-  function renderPathsOnce() {
-    svg.selectAll("path.country").attr("d", path);
-  }
-
-  function resizeOnly() {
-    const wrapRect = mapWrap.getBoundingClientRect();
-    const viewWidth = Math.max(320, wrapRect.width);
-    const newHeight = (viewWidth * heightBase) / widthBase;
-     mapWrap.style.height = newHeight + "px";
-  svg.style("height", "100%");
-  }
-
-  function debounce(fn, wait) {
-    let to;
-    return (...args) => {
-      clearTimeout(to);
-      to = setTimeout(() => fn(...args), wait);
-    };
-  }
-
-  function showCardAtClient(clientX, clientY) {
-    overlay.style.display = "block";
-    infoCard.style("display", "block");
-
-    // position card near click but keep in viewport
-    const cardNode = infoCard.node();
-    const rect = cardNode.getBoundingClientRect();
-    const cardW = rect.width;
-    const cardH = rect.height;
-
-    const cw = document.documentElement.clientWidth;
-
-    let left = clientX + 12;
-    let top = clientY + 12;
-
-    if (left + cardW + 12 > cw) left = Math.max(12, clientX - cardW - 12);
-    if (top + cardH + 12 > window.innerHeight) top = Math.max(12, clientY - cardH - 12);
-
-    if (top + cardH > window.innerHeight - 6) top = window.innerHeight - cardH - 12;
-    if (left + cardW > cw - 6) left = Math.max(12, cw - cardW - 12);
-    if (left < 12) left = 12;
-    if (top < 12) top = 12;
-
-    infoCard.style("left", left + "px").style("top", top + "px");
-
-    // give keyboard users focus inside modal
-    closeBtn.focus();
-  }
-  </script>
-</body>
-</html>
+    // Embed-safe resize (works even when Drupal changes widths without window resize)
+    const ro = new ResizeObserver(resizeToContainer);
+    ro.observe(root);
+    requestAnimationFrame(resizeToContainer);
+    setTimeout(resizeToContainer, 150);
+  }).catch(console.error);
+})();
+</script>
