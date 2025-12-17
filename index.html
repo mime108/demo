@@ -1,610 +1,486 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Space Debris Celestial Chart</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <meta charset="utf-8" />
+  <title>Africa interactive map — demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body {
-      background: linear-gradient(to bottom, #0d1b2a, #1b263b);
-      color: #ffffff;
-      font-family: 'Avenir', 'Helvetica Neue', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      position: relative;
-      overflow-x: hidden;
-    }
+    /* Layout */
 
-    .app-container {
-      width: 100%;
-      min-height: 100vh;
-      position: relative;
-    }
+    :root{
+  --asu-black: #000000;
+  --asu-gold: rgb(255,198,39); /* #FFC627 */
+  --asu-maroon: rgb(140,29,64); /* #8C1D40 */
+  --line-opacity: 0.04; 
+}
 
-    .starry-background {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #222;
+  overflow-x: hidden;
+}
 
-    .chart-container {
-      width: 100%;
-      max-width: 90vw;
-      margin: 0 auto;
-      padding: 20px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      z-index: 2;
-    }
+body {
+  margin:0;
+  background: transparent;
+  color: #fff;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+}
 
-    #chart {
-      width: 100%;
-      max-width: 1000px;
-      aspect-ratio: 1/1;
-      display: block;
-      background: transparent;
-    }
+    /* Countries */
+    .country { fill: #dfe0e4; stroke: #4b5563; stroke-width:0.5; cursor: default; pointer-events: none; transition: fill .12s, stroke .12s; }
+    .country.has-data { fill: var(--asu-gold); stroke: rgba(255, 198, 39, 0.4); stroke-width:0.5; cursor: pointer; pointer-events: auto; }
+    .country:hover { fill: #b5b8bd; stroke: #374151; stroke-width:0.7; }
+    .country.has-data:hover { fill: rgb(230, 178, 35); stroke: rgba(230, 178, 35, 0.5); stroke-width:0.7; }
+    .country.active { fill: #374151; stroke: #1f2937; stroke-width:1.0; }
+    .country.has-data.active { fill: rgb(230, 178, 35); stroke: rgba(230, 178, 35, 0.6); stroke-width:1.0; }
 
-    .interval-segment {
-      stroke: rgba(255, 255, 255, 0.9);
-      stroke-width: 1px;
-      transition: all 0.4s ease;
-      filter: drop-shadow(0 0 4px rgba(69, 123, 157, 0.5));
-      animation: fadeIn 1s ease-in;
-    }
 
-    .interval-segment:hover {
-      fill-opacity: 0.85;
-      filter: drop-shadow(0 0 8px rgba(69, 123, 157, 0.8));
-      cursor: pointer;
-    }
 
-    .label {
-      font-family: 'Avenir', 'Helvetica Neue', Arial, sans-serif;
-      fill: #ffffff;
-      font-size: 11px;
-      text-anchor: middle;
-      filter: drop-shadow(0 0 3px rgba(69, 123, 157, 0.9));
-      font-weight: 400;
-      letter-spacing: 0.5px;
-      paint-order: stroke;
-      stroke: rgba(29, 53, 87, 0.8);
-      stroke-width: 1px;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
+/* Fix map container spacing so top and bottom feel equal */
+.map-wrap {
+  margin: 0 auto;
+  padding: 10px 0;
+  max-width: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: none;
+  min-height: calc(100vh - 100px);
+  position: relative;
+}
 
-    .title {
-      fill: #ffffff;
-      font-size: 18px;
-      text-anchor: middle;
-      font-weight: 500;
-      letter-spacing: 1.5px;
-      filter: drop-shadow(0 0 3px rgba(69, 123, 157, 0.5));
-    }
+    /* Modal overlay (desktop only) */
+ #infoOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.36);
+  z-index: 999;
+  overflow: auto;
+}
 
-    .subtitle {
-      fill: rgba(255, 255, 255, 0.8);
-      font-size: 12px;
-      text-anchor: middle;
-      font-weight: 300;
-      letter-spacing: 1px;
-    }
+    /* Modal card (desktop) */
+.info-card {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  min-width: 260px;
+  max-width: 460px;
+  width: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.22);
+  padding: 16px 18px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: #222;
+  overflow: auto;
+  max-height: calc(100vh - 40px); 
+}
+    .info-card h3 { margin:0 0 8px 0; font-size:16px; font-weight:600; }
+    .info-row { margin:6px 0; display:flex; justify-content:space-between; align-items:center; }
+    .info-row div:first-child { color:#444; }
+    .close-btn { background:none; border:0; font-size:20px; line-height:1; cursor:pointer; position:absolute; right:8px; top:8px; color:#666; }
+    
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+}
+#mapSvg {
+  background: transparent;
+  cursor: grab;
+}
+#mapSvg.dragging {
+  cursor: grabbing;
+}
 
-    .celestial-circle {
-      fill: none;
-      stroke: rgba(255, 255, 255, 0.2);
-      stroke-width: 0.5px;
+    .loading {
+      position:absolute; left:12px; top:12px; background:transparent; font-size:13px; color:#666;
     }
-
-    .celestial-circle-dashed {
-      fill: none;
-      stroke: rgba(255, 255, 255, 0.25);
-      stroke-width: 0.7px;
-      stroke-dasharray: 2, 4;
-    }
-
-    .celestial-circle-dotted {
-      fill: none;
-      stroke: rgba(255, 255, 255, 0.3);
-      stroke-width: 0.5px;
-      stroke-dasharray: 0.5, 3;
-    }
-
-    .radial-line {
-      stroke: rgba(255, 255, 255, 0.2);
-      stroke-width: 0.5px;
-    }
-
-    .celestial-body {
-      fill: #ffffff;
-      filter: drop-shadow(0 0 4px rgba(69, 123, 157, 0.6));
-    }
-
-    .celestial-body-glow {
-      fill: rgba(69, 123, 157, 0.4);
-      filter: blur(3px);
-    }
-
-    .constellation-line {
-      stroke: rgba(255, 255, 255, 0.3);
-      stroke-width: 0.5px;
-      stroke-dasharray: 2, 3;
-    }
-
-    .grid-dot {
-      fill: rgba(255, 255, 255, 0.4);
-    }
-
-    .star {
-      fill: #ffffff;
-      filter: drop-shadow(0 0 2px rgba(69, 123, 157, 0.6));
-    }
-
-    .popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 15px 20px;
-      background: rgba(29, 53, 87, 0.85);
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 8px;
-      box-shadow: 0 0 15px rgba(69, 123, 157, 0.2);
-      max-width: 300px;
-      width: 90%;
-      z-index: 1000;
-      display: none;
-      font-family: 'Avenir', 'Helvetica Neue', Arial, sans-serif;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .popup h4 {
-      margin: 0 0 10px 0;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-      padding-bottom: 5px;
-    }
-
-    .popup p {
-      margin: 5px 0;
-      font-size: 11px;
-    }
-
-    .popup .close-btn {
+    
+    /* Zoom controls */
+    .zoom-controls {
       position: absolute;
       top: 10px;
       right: 10px;
-      background: none;
-      border: none;
-      color: #ffffff;
-      font-size: 16px;
-      cursor: pointer;
-      padding: 0;
-      line-height: 1;
-    }
-
-    .popup-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 999;
-      display: none;
-    }
-
-    @media (max-width: 768px) {
-      .chart-container {
-        padding: 10px;
-      }
-
-      .title {
-        font-size: 16px;
-      }
-
-      .subtitle {
-        font-size: 10px;
-      }
-
-      .label {
-        font-size: 9px;
-        stroke-width: 0.5px;
-      }
-
-      .popup {
-        font-size: 10px;
-        max-width: 250px;
-      }
-
-      .popup h4 {
-        font-size: 12px;
-      }
-
-      .popup p {
-        font-size: 10px;
-      }
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 100;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 198, 39, 0.15);
+      background: rgba(0, 0, 0, 0.3);
     }
     
-    @media (max-width: 480px) {
-      .chart-container {
-        padding: 5px;
-      }
+    .zoom-btn {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      transition: all 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    
+    .zoom-btn:hover {
+      background: #fff;
+      border-color: var(--asu-gold);
+      transform: scale(1.05);
+    }
+    
+    .zoom-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Mobile bottom card */
+    .mobile-info-card {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+      padding: 20px;
+      z-index: 1000;
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    
+    .mobile-info-card h3 { 
+      margin: 0 0 12px 0; 
+      font-size: 18px; 
+      font-weight: 600; 
+      color: #222;
+    }
+    
+    .mobile-info-card .info-row {
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .mobile-info-card .info-row:last-child {
+      border-bottom: none;
+    }
+    
+    .mobile-info-card .info-row div:first-child { 
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .mobile-info-card .info-row div:last-child { 
+      color: #222;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    
+    .mobile-close-btn {
+      background: none;
+      border: 0;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      color: #666;
+      padding: 4px;
+    }
+    
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
 
-      .title {
-        font-size: 14px;
+      
+      .info-card {
+        display: none !important;
       }
-
-      .subtitle {
-        font-size: 8px;
+      
+      #infoOverlay {
+        display: none !important;
       }
-
-      .label {
-        font-size: 7px;
-        stroke-width: 0.5px;
+      
+      .zoom-controls {
+        top: 8px;
+        right: 8px;
+        padding: 6px;
       }
-
-      .popup {
-        font-size: 9px;
-        max-width: 200px;
+      
+      .zoom-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
       }
-
-      .popup h4 {
-        font-size: 11px;
-      }
-
-      .popup p {
-        font-size: 9px;
+      
+      .map-wrap {
+        min-height: calc(100vh - 80px);
       }
     }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <svg class="starry-background"></svg>
+
+
+  <div class="map-wrap" id="mapWrap">
+    <div class="loading" id="loadingText">Loading map…</div>
     
-    <div class="chart-container">
-      <div class="popup-overlay"></div>
-      <div class="popup">
-        <button class="close-btn">×</button>
-        <h4></h4>
-        <p></p>
-      </div>
-      <svg id="chart"></svg>
+    <!-- Zoom controls -->
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoomIn" aria-label="Zoom in">+</button>
+      <button class="zoom-btn" id="zoomOut" aria-label="Zoom out">−</button>
+      <button class="zoom-btn" id="zoomReset" aria-label="Reset zoom" style="font-size: 16px;">⊙</button>
+    </div>
+    
+    <svg id="mapSvg" viewBox="0 0 960 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of Africa"></svg>
+
+    <!-- Desktop modal overlay + card -->
+    <div id="infoOverlay" role="presentation"></div>
+    <div class="info-card" id="infoCard" role="dialog" aria-modal="true" aria-hidden="true">
+      <button class="close-btn" id="closeCard" aria-label="Close dialog">&times;</button>
+      <h3 id="cardTitle">Country</h3>
+      <div class="info-row"><div>Population:</div><div id="popVal">—</div></div>
+      <div class="info-row"><div>Projected 2050:</div><div id="projVal">—</div></div>
+      <div class="info-row"><div>Universities:</div><div id="uniVal">—</div></div>
+      <div class="info-row"><div>Youth %:</div><div id="youthVal">—</div></div>
+    </div>
+    
+    <!-- Mobile bottom card -->
+    <div class="mobile-info-card" id="mobileInfoCard">
+      <button class="mobile-close-btn" id="mobileCloseCard" aria-label="Close">&times;</button>
+      <h3 id="mobileCardTitle">Country</h3>
+      <div class="info-row"><div>Population:</div><div id="mobilePopVal">—</div></div>
+      <div class="info-row"><div>Projected 2050:</div><div id="mobileProjVal">—</div></div>
+      <div class="info-row"><div>Universities:</div><div id="mobileUniVal">—</div></div>
+      <div class="info-row"><div>Youth %:</div><div id="mobileYouthVal">—</div></div>
     </div>
   </div>
 
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
   <script>
-    function debounce(func, wait) {
-      let timeout;
-      return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-      };
-    }
-    function createResponsiveSVG() {
-      const container = document.querySelector('.chart-container');
-      const containerWidth = Math.min(window.innerWidth * 0.9, container.clientWidth);
-      const containerHeight = Math.min(window.innerHeight * 0.9, container.clientHeight);
-      
-      const size = Math.min(containerWidth, containerHeight) * 1.1;
-      
-      const svg = d3.select('#chart')
-        .attr('width', size)
-        .attr('height', size)
-        .attr('viewBox', `-${size/2} -${size/2} ${size} ${size}`)
-        .attr('preserveAspectRatio', 'xMidYMid meet');
-      
-      return size;
-    }
-    const handleResize = debounce(() => {
-      const newSize = createResponsiveSVG();
-      renderChart(window.chartData || mockData);
-      updateStarryBackground();
-    }, 100);
-    window.addEventListener('resize', handleResize);
-    const popup = d3.select('.popup');
-    const popupOverlay = d3.select('.popup-overlay');
-    
-    function showPopup(data) {
-      popup.select('h4').text(data.interval);
-      popup.select('p').html(`
-        Total Waste: <strong>${data.total}</strong><br>
-        Top Countries: ${data.countries
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3)
-          .map(c => `${c.country} (${c.count})`)
-          .join(', ')}
-      `);
-      
-      popup.style('display', 'block');
-      popupOverlay.style('display', 'block');
-      document.body.style.overflow = 'hidden';
-    }
-    
-    function hidePopup() {
-      popup.style('display', 'none');
-      popupOverlay.style('display', 'none');
-      document.body.style.overflow = 'auto';
-    }
-    d3.select('.close-btn').on('click', hidePopup);
-    popupOverlay.on('click', hidePopup);
-    function renderChart(data) {
-      window.chartData = data;
-      
-      const size = createResponsiveSVG();
-      const chartRadius = size * 0.38;
-      const decorationRadius = size * 0.48;
-      
-      const svg = d3.select('#chart');
-      svg.selectAll('*').remove();
-      
-      const chartGroup = svg.append('g');
-      const gridLevels = 6;
-      const gridCircles = Array(gridLevels).fill().map((_, i) => {
-        return (i + 1) * (decorationRadius / gridLevels);
-      });
-      
-      chartGroup.selectAll('.celestial-circle')
-        .data(gridCircles)
-        .enter()
-        .append('circle')
-        .attr('class', (d, i) => i % 3 === 0 ? 'celestial-circle' : 
-                               i % 2 === 0 ? 'celestial-circle-dashed' : 'celestial-circle-dotted')
-        .attr('r', d => d);
-      
-      const radialCount = 24;
-      const radialAngles = Array(radialCount).fill().map((_, i) => {
-        return (i * (2 * Math.PI / radialCount));
-      });
-      
-      chartGroup.selectAll('.radial-line')
-        .data(radialAngles)
-        .enter()
-        .append('line')
-        .attr('class', 'radial-line')
-        .attr('x1', 0)
-        .attr('y1', 0)
-        .attr('x2', angle => Math.cos(angle) * decorationRadius)
-        .attr('y2', angle => Math.sin(angle) * decorationRadius);
-      
-      gridCircles.forEach(circle => {
-        radialAngles.forEach(angle => {
-          chartGroup.append('circle')
-            .attr('class', 'grid-dot')
-            .attr('cx', Math.cos(angle) * circle)
-            .attr('cy', Math.sin(angle) * circle)
-            .attr('r', 0.7);
-        });
-      });
-      const celestialBodies = [];
-      const numBodies = 6;
-      
-      for (let i = 0; i < numBodies; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * decorationRadius * 0.4 + decorationRadius * 0.8;
-        const size = Math.random() * 5 + 3;
-        
-        celestialBodies.push({
-          x: Math.cos(angle) * distance,
-          y: Math.sin(angle) * distance,
-          size
-        });
-      }
-      
-      celestialBodies.forEach(body => {
-        chartGroup.append('circle')
-          .attr('class', 'celestial-body-glow')
-          .attr('cx', body.x)
-          .attr('cy', body.y)
-          .attr('r', body.size * 2);
-      });
-      
-      chartGroup.selectAll('.celestial-body')
-        .data(celestialBodies)
-        .enter()
-        .append('circle')
-        .attr('class', 'celestial-body')
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y)
-        .attr('r', d => d.size);
-      
-      for (let i = 0; i < celestialBodies.length - 1; i++) {
-        const shouldConnect = Math.random() > 0.3;
-        if (shouldConnect) {
-          chartGroup.append('line')
-            .attr('class', 'constellation-line')
-            .attr('x1', celestialBodies[i].x)
-            .attr('y1', celestialBodies[i].y)
-            .attr('x2', celestialBodies[i + 1].x)
-            .attr('y2', celestialBodies[i + 1].y);
-        }
-      }
-      chartGroup.append('text')
-        .attr('class', 'title')
-        .attr('y', -chartRadius - 40)
-        .text('SPACE DEBRIS BY TIME INTERVAL');
-      
-      chartGroup.append('text')
-        .attr('class', 'subtitle')
-        .attr('y', -chartRadius - 20)
-        .text('ORBITAL DEBRIS TRACKING • 1960-2024');
-      const angleScale = d3.scaleBand()
-        .domain(data.map(d => d.interval))
-        .range([0, 2 * Math.PI])
-        .padding(0.04);
-      const maxTotal = d3.max(data, d => d.total);
-      const rScale = d3.scaleSqrt()
-        .domain([0, maxTotal])
-        .range([0, chartRadius]);
-      const intervalColor = d3.scaleSequential()
-        .domain([
-          d3.min(data, d => parseInt(d.interval.split('-')[0])),
-          d3.max(data, d => parseInt(d.interval.split('-')[1]))
-        ])
-        .interpolator(d3.interpolate("rgba(69, 123, 157, 0.7)", "rgba(255, 255, 255, 0.8)"));
-      const intervalArc = d3.arc()
-        .innerRadius(0)
-        .outerRadius(d => rScale(d.total))
-        .startAngle(d => angleScale(d.interval))
-        .endAngle(d => angleScale(d.interval) + angleScale.bandwidth());
-      
-      chartGroup.selectAll('.interval-segment')
-        .data(data)
-        .enter()
-        .append('path')
-        .attr('class', 'interval-segment')
-        .attr('d', intervalArc)
-        .attr('fill', d => intervalColor(parseInt(d.interval.split('-')[0])))
-        .attr('fill-opacity', 0.5)
-        .on('click', function(event, d) {
-          d3.select(this)
-            .attr('fill-opacity', 0.7);
-          showPopup(d);
-        });
-      const labelData = data.map(d => {
-        const angle = angleScale(d.interval) + angleScale.bandwidth() / 2;
-        const r = rScale(d.total) + chartRadius * 0.22; 
-        const x = r * Math.cos(angle - Math.PI / 2);
-        const y = r * Math.sin(angle - Math.PI / 2);
-        
-        return {
-          interval: d.interval,
-          total: d.total,
-          angle,
-          baseX: r * Math.cos(angle - Math.PI / 2),
-          baseY: r * Math.sin(angle - Math.PI / 2),
-          x,
-          y
-        };
-      });
-      chartGroup.selectAll('.label-connector')
-        .data(labelData)
-        .enter()
-        .append('line')
-        .attr('class', 'label-connector')
-        .attr('x1', d => {
-          const angle = d.angle - Math.PI / 2;
-          return rScale(d.total) * Math.cos(angle);
+  /********** Configuration **********/
+  const geoUrl = "https://raw.githubusercontent.com/LiaScript/GeoJson/master/africa.geo.json";
+
+  const stats = {
+    "NGA": { country: "Nigeria", population: "223,804,632", projected2050: "401,000,000", universities: 170, youth_pct: "60%" },
+    "EGY": { country: "Egypt", population: "104,258,327", projected2050: "151,000,000", universities: 120, youth_pct: "50%" },
+    "ZAF": { country: "South Africa", population: "60,041,994", projected2050: "67,000,000", universities: 125, youth_pct: "43%" }
+  };
+
+  /********** Setup DOM nodes & D3 basics **********/
+  const mapWrap = document.getElementById("mapWrap");
+  const svg = d3.select("#mapSvg");
+  const loadingText = document.getElementById("loadingText");
+
+  // Desktop modal elements
+  const infoOverlay = d3.select("#infoOverlay");
+  const infoCard = d3.select("#infoCard");
+  const cardTitle = d3.select("#cardTitle");
+  const popVal = d3.select("#popVal");
+  const projVal = d3.select("#projVal");
+  const uniVal = d3.select("#uniVal");
+  const youthVal = d3.select("#youthVal");
+  const closeBtn = d3.select("#closeCard");
+  
+  // Mobile card elements
+  const mobileInfoCard = d3.select("#mobileInfoCard");
+  const mobileCardTitle = d3.select("#mobileCardTitle");
+  const mobilePopVal = d3.select("#mobilePopVal");
+  const mobileProjVal = d3.select("#mobileProjVal");
+  const mobileUniVal = d3.select("#mobileUniVal");
+  const mobileYouthVal = d3.select("#mobileYouthVal");
+  const mobileCloseBtn = d3.select("#mobileCloseCard");
+
+  const widthBase = 960, heightBase = 700;
+  const projection = d3.geoMercator().center([20, 3]);
+  const path = d3.geoPath().projection(projection);
+
+  let countriesGroup = null;
+  let africaGeo = null;
+  
+  // Detect if mobile
+  const isMobile = () => window.innerWidth <= 768;
+  
+  // Zoom behavior with translation limits
+  let currentZoom = d3.zoomIdentity;
+  const zoomBehavior = d3.zoom()
+    .scaleExtent([1, 8])
+    .translateExtent([[0, 0], [widthBase, heightBase]])
+    .extent([[0, 0], [widthBase, heightBase]])
+    .on("zoom", (event) => {
+      currentZoom = event.transform;
+      countriesGroup.attr("transform", event.transform);
+    });
+
+  /********** Load GeoJSON and draw **********/
+  d3.json(geoUrl).then(geo => {
+    loadingText.style.display = "none";
+    africaGeo = geo;
+
+    svg.attr("viewBox", `0 0 ${widthBase} ${heightBase}`);
+    countriesGroup = svg.append("g").attr("class", "countries");
+
+    countriesGroup.selectAll("path")
+      .data(geo.features)
+      .join("path")
+        .attr("class", d => {
+          const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
+          return stats[iso] ? "country has-data" : "country";
         })
-        .attr('y1', d => {
-          const angle = d.angle - Math.PI / 2;
-          return rScale(d.total) * Math.sin(angle);
-        })
-        .attr('x2', d => d.x)
-        .attr('y2', d => d.y);
-      chartGroup.selectAll('.interval-label')
-        .data(labelData)
-        .enter()
-        .append('text')
-        .attr('class', 'label')
-        .attr('transform', d => {
-          const angle = d.angle - Math.PI / 2;
-          const distance = rScale(d.total) + chartRadius * 0.2;
-          const x = distance * Math.cos(angle);
-          const y = distance * Math.sin(angle);
-          
-          if (angle > 0 && angle < Math.PI) {
-            return `translate(${x}, ${y}) rotate(${(angle * 180 / Math.PI) + 180})`;
+        .attr("d", path)
+        .attr("data-name", d => d.properties.ADMIN || d.properties.name || "")
+        .attr("data-iso-a3", d => d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "")
+        .on("mouseover", function() { d3.select(this).raise().classed("hover", true); })
+        .on("mouseout", function() { d3.select(this).classed("hover", false); })
+        .on("click", function(event, d) {
+          event.stopPropagation();
+
+          countriesGroup.selectAll(".country").classed("active", false);
+          d3.select(this).classed("active", true);
+
+          const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
+          const name = d.properties.ADMIN || d.properties.name || iso;
+          const data = stats[iso] || { country: name, population: "N/A", projected2050: "N/A", universities: "N/A", youth_pct: "N/A" };
+
+          if (isMobile()) {
+            // Show mobile card at bottom
+            mobileCardTitle.text(data.country);
+            mobilePopVal.text(data.population);
+            mobileProjVal.text(data.projected2050);
+            mobileUniVal.text(data.universities);
+            mobileYouthVal.text(data.youth_pct);
+            mobileInfoCard.style("display", "block");
           } else {
-            return `translate(${x}, ${y}) rotate(${angle * 180 / Math.PI})`;
+            // Show desktop card near click
+            cardTitle.text(data.country);
+            popVal.text(data.population);
+            projVal.text(data.projected2050);
+            uniVal.text(data.universities);
+            youthVal.text(data.youth_pct);
+            const clientX = event.clientX;
+            const clientY = event.clientY;
+            showCardAtClient(clientX, clientY);
           }
-        })
-        .attr('dy', '0.35em')
-        .attr('text-anchor', 'middle')
-        .text(d => `${d.interval}`)
-        .style('opacity', 1);
+        });
+
+    svg.call(zoomBehavior);
+    
+    d3.select("#zoomIn").on("click", () => {
+      svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.5);
+    });
+    
+    d3.select("#zoomOut").on("click", () => {
+      svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.67);
+    });
+    
+    d3.select("#zoomReset").on("click", () => {
+      svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
+    });
+
+    fitAndRender();
+    window.addEventListener("resize", debounce(fitAndRender, 120));
+  }).catch(err => {
+    loadingText.textContent = "Failed to load map. Check network / GeoJSON URL.";
+    console.error("GeoJSON load error:", err);
+  });
+
+  /********** Fit & render helpers **********/
+  function fitAndRender() {
+    if (!africaGeo) return;
+    const margin = 22;
+    projection.fitExtent([[margin, margin], [widthBase - margin, heightBase - margin]], africaGeo);
+    svg.selectAll("path.country").attr("d", path);
+
+    const wrapRect = mapWrap.getBoundingClientRect();
+    const viewWidth = Math.max(320, wrapRect.width);
+    const newHeight = (viewWidth * heightBase) / widthBase;
+    svg.style("height", newHeight + "px");
+  }
+
+  function debounce(fn, wait) {
+    let to;
+    return (...args) => {
+      clearTimeout(to);
+      to = setTimeout(() => fn(...args), wait);
+    };
+  }
+
+  /********** Modal behavior **********/
+  function showCardAtClient(clientX, clientY) {
+    infoOverlay.style("display", "block");
+    infoCard.style("display", "block").attr("aria-hidden", "false");
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
+    const cw = window.innerWidth;
+    const cardNode = infoCard.node();
+    const computedW = Math.min(460, Math.max(260, Math.floor(cw * 0.42)));
+    infoCard.style("width", computedW + "px");
+
+    requestAnimationFrame(() => {
+      const cardW = cardNode.offsetWidth || computedW;
+      const cardH = cardNode.offsetHeight || 180;
+      let left = clientX + 12;
+      let top = clientY + 12;
+
+      if (left + cardW + 12 > cw) left = Math.max(12, clientX - cardW - 12);
+      if (top + cardH + 12 > window.innerHeight) top = Math.max(12, clientY - cardH - 12);
+
+      if (top + cardH > window.innerHeight - 6) top = window.innerHeight - cardH - 12;
+      if (left + cardW > cw - 6) left = Math.max(12, cw - cardW - 12);
+      if (left < 12) left = 12;
+      if (top < 12) top = 12;
+
+      infoCard.style("left", left + "px").style("top", top + "px");
+      closeBtn.node().focus();
+    });
+  }
+  
+  function closeModal() {
+    infoOverlay.style("display", "none");
+    infoCard.style("display", "none").attr("aria-hidden", "true");
+    mobileInfoCard.style("display", "none");
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    if (countriesGroup) countriesGroup.selectAll(".country").classed("active", false);
+  }
+
+  infoOverlay.on("click", () => closeModal());
+  closeBtn.on("click", () => closeModal());
+  mobileCloseBtn.on("click", () => closeModal());
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+
+  document.addEventListener("click", (e) => {
+    const target = e.target;
+    if (infoCard.style("display") === "block") {
+      if (!target.closest || (!target.closest(".info-card") && !target.closest(".country"))) closeModal();
     }
-    function updateStarryBackground() {
-      const starsSvg = d3.select(".starry-background");
-      if (starsSvg.empty()) return;
-      const viewWidth = window.innerWidth;
-      const viewHeight = window.innerHeight;
-      starsSvg.selectAll("*").remove();
-      starsSvg
-        .attr("width", viewWidth)
-        .attr("height", viewHeight)
-        .attr("viewBox", `0 0 ${viewWidth} ${viewHeight}`);
-      const starCount = Math.max(50, Math.floor((viewWidth * viewHeight) / 1500));
-      const stars = [];
-      const gridSize = Math.ceil(Math.sqrt(starCount));
-      const cellWidth = viewWidth / gridSize;
-      const cellHeight = viewHeight / gridSize;
-      
-      for (let i = 0; i < starCount; i++) {
-        const gridX = i % gridSize;
-        const gridY = Math.floor(i / gridSize);
-        const x = gridX * cellWidth + Math.random() * cellWidth;
-        const y = gridY * cellHeight + Math.random() * cellHeight;
-        stars.push({ x, y });
-      }
-      starsSvg
-        .selectAll(".star")
-        .data(stars)
-        .enter()
-        .append("circle")
-        .attr("class", "star")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y)
-        .attr("r", () => Math.random() * 1.5 + 0.2)
-        .attr("opacity", () => Math.random() * 0.5 + 0.3);
-    }
-    updateStarryBackground();
-    d3.csv("space_decay.csv")
-      .then(rawData => {
-        const debrisData = rawData
-          .filter(d => d.OBJECT_TYPE === "DEBRIS")
-          .reduce((acc, d) => {
-            const launchDate = d.LAUNCH_DATE;
-            if (!launchDate) return acc;
+  });
 
-            const year = new Date(launchDate).getFullYear();
-            if (isNaN(year)) return acc;
-
-            const intervalStart = Math.floor(year / 5) * 5;
-            const intervalEnd = intervalStart + 4;
-            const interval = `${intervalStart}-${intervalEnd}`;
-
-            const country = d.COUNTRY_CODE || "Unknown";
-
-            if (!acc[interval]) {
-              acc[interval] = { total: 0, countries: {} };
-            }
-            acc[interval].total = (acc[interval].total || 0) + 1;
-            acc[interval].countries[country] = (acc[interval].countries[country] || 0) + 1;
-
-            return acc;
-          }, {});
-
-        const chartData = Object.entries(debrisData)
-          .map(([interval, info]) => ({
-            interval,
-            total: info.total,
-            countries: Object.entries(info.countries).map(([country, count]) => ({ country, count }))
-          }))
-          .sort((a, b) => parseInt(a.interval.split('-')[0]) - parseInt(b.interval.split('-')[0]));
-
-        if (chartData.length > 0) {
-          renderChart(chartData);
-        }
-      })
-      .catch(error => {
-        console.error("Error loading the CSV file:", error);
-      });
   </script>
 </body>
 </html>
