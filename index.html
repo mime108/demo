@@ -177,11 +177,65 @@
     card.style.top  = top  + "px";
   }
 
-  d3.json(geoUrl).then(geo => {
+  d3.json(geoUrl).then(rawGeo => {
+
+    // ---- Remove tiny subantarctic islands that blow up the fit (under South Africa) ----
+    // In this GeoJSON, those islands are part of ZAF and usually show up with "Prince..." in ADMIN.
+  // ---- Remove far-south island polygons that blow up the fit (geometry-based) ----
+function stripFarSouthIslands(feature, minLatKeep = -38) {
+  const p = feature.properties || {};
+  const iso = p.ISO_A3 || p.iso_a3 || p.ID || "";
+
+  // Only sanitize South Africa in this dataset
+  if (iso !== "ZAF") return feature;
+
+  const g = feature.geometry;
+  if (!g) return feature;
+
+  // Helper: centroid latitude for a single Polygon coordinates array
+  const centroidLat = (polyCoords) => {
+    // polyCoords is: [ [ [lon,lat], ... ] , hole1, hole2, ...]
+    const tmp = { type: "Feature", geometry: { type: "Polygon", coordinates: polyCoords } };
+    return d3.geoCentroid(tmp)[1];
+  };
+
+  if (g.type === "Polygon") {
+    // If the whole polygon is far south, drop it entirely
+    const lat = centroidLat(g.coordinates);
+    if (lat < minLatKeep) return null;
+    return feature;
+  }
+
+  if (g.type === "MultiPolygon") {
+    const kept = g.coordinates.filter(polyCoords => centroidLat(polyCoords) >= minLatKeep);
+
+    // If somehow everything got filtered, keep original to avoid breaking the map
+    if (!kept.length) return feature;
+
+    return {
+      ...feature,
+      geometry: { type: "MultiPolygon", coordinates: kept }
+    };
+  }
+
+  return feature;
+}
+
+const geo = {
+  ...rawGeo,
+  features: rawGeo.features
+    .map(f => stripFarSouthIslands(f, -38))  // adjust threshold if needed (-40, -36, etc.)
+    .filter(Boolean)
+};
+// -------------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------------
+
     svg
       .attr("viewBox", `0 0 ${widthBase} ${heightBase}`)
       .attr("preserveAspectRatio", "xMidYMid meet");
 
+    // Fit projection ONCE (fast resizing later)
     projection.fitExtent([[22,22],[widthBase-22,heightBase-22]], geo);
 
     countriesGroup = svg.append("g").attr("class", "countries");
