@@ -7,357 +7,319 @@
   <style>
     /* Layout */
 
+/* Defining the color paletter according to ASU standards (Can be used or replicated and tinkered with as needed) */
     :root{
   --asu-black: #000000;
   --asu-gold: rgb(255,198,39); /* #FFC627 */
   --asu-maroon: rgb(140,29,64); /* #8C1D40 */
-  --line-opacity: 0.04; /* subtle line opacity */
+  --line-opacity: 0.04; /* line opacity */
 }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: transparent;
+      color: #eee;
+    }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  color: #222;
-  overflow-x: hidden;
-}
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
 
-body {
-  margin:0;
-  background: transparent;
-  color: #fff;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-}
+    h1 {
+      margin: 0 0 14px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    p.sub {
+      margin: 0 0 18px;
+      color: #cfcfcf;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .wrap {
+      position: relative;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+
+    .map-wrap {
+      position: relative;
+      width: 100%;
+      /* the SVG height is set dynamically in JS to preserve aspect ratio */
+    }
+
+    /* SVG */
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;           /* allow svg to determine height from viewBox */
+      max-height: 1200px;     /* optional cap can be removed based or edited based on the usage requirement*/
+    }
+    #mapSvg
+    {
+      background: transparent;
+      cursor: grab;
+    }
+    #mapSvg.dragging {
+      cursor: grabbing;
+    }
 
     /* Countries */
-    .country { fill: #6b7280; stroke: #4b5563; stroke-width:0.5; cursor: default; pointer-events: none; transition: fill .12s, stroke .12s; }
-    .country.has-data { fill: var(--asu-gold); stroke: rgba(255, 198, 39, 0.4); stroke-width:0.5; cursor: pointer; pointer-events: auto; }
-    .country:hover { fill: #4b5563; stroke: #374151; stroke-width:0.7; }
-    .country.has-data:hover { fill: rgb(230, 178, 35); stroke: rgba(230, 178, 35, 0.5); stroke-width:0.7; }
-    .country.active { fill: #374151; stroke: #1f2937; stroke-width:1.0; }
-    .country.has-data.active { fill: rgb(230, 178, 35); stroke: rgba(230, 178, 35, 0.6); stroke-width:1.0; }
+    .country {
+      fill: rgb(121, 116, 116);
+      stroke: rgba(255,255,255,var(--line-opacity));
+      stroke-width: 0.7;
+      vector-effect: non-scaling-stroke;
+      transition: fill .12s ease, stroke .12s ease, opacity .12s ease;
+    }
 
-/* --- Visualization Title Section --- */
-.viz-header {
-  text-align: center;
-  padding: 20px 20px 10px 20px;
-  max-width: 900px;
-  margin: 0 auto;
-}
+    .country.has-data {
+      fill: rgba(255,198,39); /* asu gold tint */
+      cursor: pointer;
+    }
 
-.viz-title {
-  font-size: clamp(20px, 4vw, 32px);
-  font-weight: 600;
-  margin: 0;
-  letter-spacing: 0.3px;
-  color: #fff;
-}
+    .country.has-data.hover {
+      fill: rgba(255,198,39,0.5);
+      stroke: rgba(255,255,255,0.25);
+    }
 
-.viz-subtitle {
-  margin: 8px 0 0 0;
-  font-size: clamp(13px, 2vw, 15px);
-  color: #aaa;
-}
+    .country.has-data.active {
+      fill: rgba(140,29,64,0.65); /* asu maroon tint */
+      stroke: rgba(255,255,255,0.35);
+    }
 
-/* Fix map container spacing so top and bottom feel equal */
-.map-wrap {
-  margin: 0 auto;
-  padding: 0;
-  max-width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: transparent;
-  border: none;
-  position: relative;
-}
+    /* NEW: make no-data countries not clickable */
+    .country.no-data{
+      pointer-events: none;
+      cursor: default;
+      opacity: 0.6;
+    }
 
-    /* Modal overlay (desktop only) */
- #infoOverlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.36);
-  z-index: 999;
-  overflow: auto;
-}
-
-    /* Modal card (desktop) */
-.info-card {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  min-width: 260px;
-  max-width: 460px;
-  width: auto;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 14px 34px rgba(0,0,0,0.22);
-  padding: 16px 18px;
-  font-size: 14px;
-  line-height: 1.35;
-  color: #222;
-  overflow: auto;
-  max-height: calc(100vh - 40px); 
-}
-    .info-card h3 { margin:0 0 8px 0; font-size:16px; font-weight:600; }
-    .info-row { margin:6px 0; display:flex; justify-content:space-between; align-items:center; }
-    .info-row div:first-child { color:#444; }
-    .close-btn { background:none; border:0; font-size:20px; line-height:1; cursor:pointer; position:absolute; right:8px; top:8px; color:#666; }
-    
-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
-}
-#mapSvg {
-  background: transparent;
-  cursor: grab;
-}
-#mapSvg.dragging {
-  cursor: grabbing;
-}
-
+    /* Loading */
     .loading {
-      position:absolute; left:12px; top:12px; background:transparent; font-size:13px; color:#666;
-    }
-    
-    /* Zoom controls - fixed positioning */
-    .zoom-controls {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      z-index: 100;
-      padding: 8px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 198, 39, 0.15);
-      background: rgba(0, 0, 0, 0.5);
-    }
-    
-    .zoom-btn {
-      width: 32px;
-      height: 32px;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #333;
-      transition: all 0.2s;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-    
-    .zoom-btn:hover {
-      background: #fff;
-      border-color: var(--asu-gold);
-      transform: scale(1.05);
-    }
-    
-    .zoom-btn:active {
-      transform: scale(0.95);
-    }
-    
-    /* Mobile bottom card */
-    .mobile-info-card {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border-radius: 16px 16px 0 0;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
-      padding: 20px;
-      z-index: 1000;
-      max-height: 40vh;
-      overflow-y: auto;
-    }
-    
-    .mobile-info-card h3 { 
-      margin: 0 0 12px 0; 
-      font-size: 18px; 
-      font-weight: 600; 
-      color: #222;
-    }
-    
-    .mobile-info-card .info-row {
-      margin: 10px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #f0f0f0;
-    }
-    
-    .mobile-info-card .info-row:last-child {
-      border-bottom: none;
-    }
-    
-    .mobile-info-card .info-row div:first-child { 
-      color: #666;
-      font-size: 14px;
-    }
-    
-    .mobile-info-card .info-row div:last-child { 
-      color: #222;
-      font-weight: 600;
-      font-size: 15px;
-    }
-    
-    .mobile-close-btn {
-      background: none;
-      border: 0;
-      font-size: 24px;
-      line-height: 1;
-      cursor: pointer;
       position: absolute;
-      right: 16px;
-      top: 16px;
-      color: #666;
-      padding: 4px;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.25), rgba(0,0,0,0.25));
+      z-index: 2;
+      pointer-events: none;
     }
-    
-    /* Mobile-specific styles */
-    @media (max-width: 768px) {
-      .viz-header {
-        padding: 15px 15px 8px 15px;
-      }
-      
-      .info-card {
-        display: none !important;
-      }
-      
-      #infoOverlay {
-        display: none !important;
-      }
-      
-      .zoom-controls {
-        top: 8px;
-        right: 8px;
-        padding: 6px;
-      }
-      
-      .zoom-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 20px;
-      }
+
+    /* Info card (modal-ish) */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      z-index: 10;
+    }
+
+    .card {
+      position: fixed;
+      z-index: 11;
+      width: 320px;
+      max-width: calc(100vw - 24px);
+      background: #1a1a1a;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      box-shadow: 0 18px 70px rgba(0,0,0,.55);
+      padding: 14px 14px 12px;
+      display: none;
+    }
+
+    .card header{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .card h2{
+      font-size: 16px;
+      margin: 0;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .close-btn{
+      border: none;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-radius: 10px;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+    .close-btn:hover{ background: rgba(255,255,255,0.14); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .stat {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .stat .label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 4px;
+      letter-spacing: .2px;
+    }
+    .stat .value{
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .hint {
+      padding: 10px 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: rgba(0,0,0,0.15);
     }
   </style>
 </head>
+
 <body>
-    <div class="viz-header">
-  <h1 class="viz-title">Higher Education Across Africa</h1>
-  <p class="viz-subtitle">Click any country to view population, projections, and university data.</p>
-</div>
+  <div class="page">
 
-  <div class="map-wrap" id="mapWrap">
-    <div class="loading" id="loadingText">Loading map…</div>
-    
-    <!-- Zoom controls -->
-    <div class="zoom-controls">
-      <button class="zoom-btn" id="zoomIn" aria-label="Zoom in">+</button>
-      <button class="zoom-btn" id="zoomOut" aria-label="Zoom out">−</button>
-      <button class="zoom-btn" id="zoomReset" aria-label="Reset zoom" style="font-size: 16px;">⊙</button>
-    </div>
-    
-    <svg id="mapSvg" viewBox="0 0 960 700" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Map of Africa"></svg>
-
-    <!-- Desktop modal overlay + card -->
-    <div id="infoOverlay" role="presentation"></div>
-    <div class="info-card" id="infoCard" role="dialog" aria-modal="true" aria-hidden="true">
-      <button class="close-btn" id="closeCard" aria-label="Close dialog">&times;</button>
-      <h3 id="cardTitle">Country</h3>
-      <div class="info-row"><div>Population:</div><div id="popVal">—</div></div>
-      <div class="info-row"><div>Projected 2050:</div><div id="projVal">—</div></div>
-      <div class="info-row"><div>Universities:</div><div id="uniVal">—</div></div>
-      <div class="info-row"><div>Youth %:</div><div id="youthVal">—</div></div>
-    </div>
-    
-    <!-- Mobile bottom card -->
-    <div class="mobile-info-card" id="mobileInfoCard">
-      <button class="mobile-close-btn" id="mobileCloseCard" aria-label="Close">&times;</button>
-      <h3 id="mobileCardTitle">Country</h3>
-      <div class="info-row"><div>Population:</div><div id="mobilePopVal">—</div></div>
-      <div class="info-row"><div>Projected 2050:</div><div id="mobileProjVal">—</div></div>
-      <div class="info-row"><div>Universities:</div><div id="mobileUniVal">—</div></div>
-      <div class="info-row"><div>Youth %:</div><div id="mobileYouthVal">—</div></div>
+    <div class="wrap">
+      <div class="map-wrap" id="mapWrap">
+        <div class="loading" id="loadingText">Loading map…</div>
+        <svg id="mapSvg" aria-label="Africa map"></svg>
+      </div>
+      <div class="hint">
+        Tip: scroll to zoom • drag to pan • double-click to reset
+      </div>
     </div>
   </div>
 
-  <!-- D3 -->
+  <div class="overlay" id="overlay"></div>
+
+  <div class="card" id="infoCard" role="dialog" aria-modal="true" aria-label="Country details">
+    <header>
+      <h2 id="cardTitle">Country</h2>
+      <button class="close-btn" id="closeBtn" aria-label="Close">×</button>
+    </header>
+
+    <div class="grid">
+      <div class="stat">
+        <div class="label">Population (current)</div>
+        <div class="value" id="popVal">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Projected population (2050)</div>
+        <div class="value" id="projVal">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Universities</div>
+        <div class="value" id="uniVal">—</div>
+      </div>
+      <div class="stat">
+        <div class="label">Youth %</div>
+        <div class="value" id="youthVal">—</div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://d3js.org/d3.v7.min.js"></script>
 
   <script>
-  /********** Configuration **********/
+  // GeoJSON source (Africa-only). Can be replaced with any JSon file of map as needed.
+  // we can later upgrade to more accurate maps with islands represented in them this version is missing some islands
   const geoUrl = "https://raw.githubusercontent.com/LiaScript/GeoJson/master/africa.geo.json";
 
+  // Sample stats keyed by ISO_A3 (replace with our actual data).
+  // You can instead fetch a JSON/CSV file and replace 'stats' at runtime.
   const stats = {
     "NGA": { country: "Nigeria", population: "223,804,632", projected2050: "401,000,000", universities: 170, youth_pct: "60%" },
     "EGY": { country: "Egypt", population: "104,258,327", projected2050: "151,000,000", universities: 120, youth_pct: "50%" },
     "ZAF": { country: "South Africa", population: "60,041,994", projected2050: "67,000,000", universities: 125, youth_pct: "43%" }
+    // add other ISO_A3 keys...
   };
 
-  /********** Setup DOM nodes & D3 basics **********/
+  // DOM refs
   const mapWrap = document.getElementById("mapWrap");
   const svg = d3.select("#mapSvg");
   const loadingText = document.getElementById("loadingText");
+  const overlay = document.getElementById("overlay");
 
-  // Desktop modal elements
-  const infoOverlay = d3.select("#infoOverlay");
   const infoCard = d3.select("#infoCard");
   const cardTitle = d3.select("#cardTitle");
   const popVal = d3.select("#popVal");
   const projVal = d3.select("#projVal");
   const uniVal = d3.select("#uniVal");
   const youthVal = d3.select("#youthVal");
-  const closeBtn = d3.select("#closeCard");
-  
-  // Mobile card elements
-  const mobileInfoCard = d3.select("#mobileInfoCard");
-  const mobileCardTitle = d3.select("#mobileCardTitle");
-  const mobilePopVal = d3.select("#mobilePopVal");
-  const mobileProjVal = d3.select("#mobileProjVal");
-  const mobileUniVal = d3.select("#mobileUniVal");
-  const mobileYouthVal = d3.select("#mobileYouthVal");
-  const mobileCloseBtn = d3.select("#mobileCloseCard");
+  const closeBtn = document.getElementById("closeBtn");
 
-  const widthBase = 960, heightBase = 700;
-  const projection = d3.geoMercator().center([20, 3]);
-  const path = d3.geoPath().projection(projection);
+  // ViewBox base size (we keep projection in this coordinate system)
+  const widthBase = 900;
+  const heightBase = 900;
 
-  let countriesGroup = null;
+  // D3 projection/path
+  const projection = d3.geoMercator();
+  const path = d3.geoPath(projection);
+
   let africaGeo = null;
-  
-  // Detect if mobile
-  const isMobile = () => window.innerWidth <= 768;
-  
-  // Zoom behavior with translation limits
-  let currentZoom = d3.zoomIdentity;
+  let countriesGroup = null;
+
+  // Zoom behavior
   const zoomBehavior = d3.zoom()
     .scaleExtent([1, 8])
     .translateExtent([[0, 0], [widthBase, heightBase]])
     .extent([[0, 0], [widthBase, heightBase]])
+    .on("start", () => svg.classed("dragging", true))
+    .on("end", () => svg.classed("dragging", false))
     .on("zoom", (event) => {
-      currentZoom = event.transform;
-      countriesGroup.attr("transform", event.transform);
+      if (countriesGroup) countriesGroup.attr("transform", event.transform);
     });
 
-  /********** Load GeoJSON and draw **********/
+  svg.call(zoomBehavior);
+
+  // Close handlers
+  function hideCard() {
+    overlay.style.display = "none";
+    infoCard.style("display", "none");
+    // clear active highlight
+    if (countriesGroup) countriesGroup.selectAll(".country").classed("active", false);
+  }
+
+  overlay.addEventListener("click", hideCard);
+  closeBtn.addEventListener("click", hideCard);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") hideCard();
+  });
+
+  // Load GeoJSON and draw
   d3.json(geoUrl).then(geo => {
     loadingText.style.display = "none";
     africaGeo = geo;
 
+    // set viewBox for predictable coordinates
     svg.attr("viewBox", `0 0 ${widthBase} ${heightBase}`);
+
+    // append group for countries
     countriesGroup = svg.append("g").attr("class", "countries");
 
     countriesGroup.selectAll("path")
@@ -365,71 +327,77 @@ svg {
       .join("path")
         .attr("class", d => {
           const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
-          return stats[iso] ? "country has-data" : "country";
+          // Automatically add 'has-data' class if country exists in stats
+          return stats[iso] ? "country has-data" : "country no-data";
         })
-        .attr("d", path)
+        .attr("d", path) // initial draw (projection will be fit below)
         .attr("data-name", d => d.properties.ADMIN || d.properties.name || "")
         .attr("data-iso-a3", d => d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "")
-        .on("mouseover", function() { d3.select(this).raise().classed("hover", true); })
+        // Change #3: remove raise() for cheaper hover behavior
+        .on("mouseover", function() { d3.select(this).classed("hover", true); })
         .on("mouseout", function() { d3.select(this).classed("hover", false); })
         .on("click", function(event, d) {
+          // Countries without data are not interactive
+          const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
+          if (!stats[iso]) return;
+
+          // prevent document handler closing immediately
           event.stopPropagation();
 
+          // set active class
           countriesGroup.selectAll(".country").classed("active", false);
           d3.select(this).classed("active", true);
 
-          const iso = d.properties.ISO_A3 || d.properties.iso_a3 || d.properties.ID || "";
+          // read name
           const name = d.properties.ADMIN || d.properties.name || iso;
-          const data = stats[iso] || { country: name, population: "N/A", projected2050: "N/A", universities: "N/A", youth_pct: "N/A" };
 
-          if (isMobile()) {
-            // Show mobile card at bottom
-            mobileCardTitle.text(data.country);
-            mobilePopVal.text(data.population);
-            mobileProjVal.text(data.projected2050);
-            mobileUniVal.text(data.universities);
-            mobileYouthVal.text(data.youth_pct);
-            mobileInfoCard.style("display", "block");
-          } else {
-            // Show desktop card near click
-            cardTitle.text(data.country);
-            popVal.text(data.population);
-            projVal.text(data.projected2050);
-            uniVal.text(data.universities);
-            youthVal.text(data.youth_pct);
-            const clientX = event.clientX;
-            const clientY = event.clientY;
-            showCardAtClient(clientX, clientY);
-          }
+          // populate card from stats (fallback if missing)
+          const data = stats[iso] || { country: name, population: "N/A", projected2050: "N/A", universities: "N/A", youth_pct: "N/A" };
+          cardTitle.text(data.country);
+          popVal.text(data.population);
+          projVal.text(data.projected2050);
+          uniVal.text(data.universities);
+          youthVal.text(data.youth_pct);
+
+          // show modal overlay + card near the click using client coords
+          const clientX = event.clientX;
+          const clientY = event.clientY;
+          showCardAtClient(clientX, clientY);
         });
 
-    svg.call(zoomBehavior);
-    
-    d3.select("#zoomIn").on("click", () => {
-      svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.5);
-    });
-    
-    d3.select("#zoomOut").on("click", () => {
-      svg.transition().duration(300).call(zoomBehavior.scaleBy, 0.67);
-    });
-    
-    d3.select("#zoomReset").on("click", () => {
+    // double click to reset zoom
+    svg.on("dblclick.zoom", null); // disable default dblclick zoom
+    svg.on("dblclick", () => {
       svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity);
     });
 
-    fitAndRender();
-    window.addEventListener("resize", debounce(fitAndRender, 120));
+    // Change #1: Fit + render once, resize only adjusts CSS size
+    fitProjectionOnce();
+    renderPathsOnce();
+    resizeOnly();
+    window.addEventListener("resize", debounce(resizeOnly, 120));
   }).catch(err => {
     loadingText.textContent = "Failed to load map. Check network / GeoJSON URL.";
     console.error("GeoJSON load error:", err);
   });
 
-  /********** Fit & render helpers **********/
-  function fitAndRender() {
+  // Fit / render / resize helpers
+  // (Projection fitting + path generation are expensive; do them once.)
+  function fitProjectionOnce() {
     if (!africaGeo) return;
     const margin = 22;
     projection.fitExtent([[margin, margin], [widthBase - margin, heightBase - margin]], africaGeo);
+  }
+
+  function renderPathsOnce() {
     svg.selectAll("path.country").attr("d", path);
+  }
+
+  function resizeOnly() {
+    const wrapRect = mapWrap.getBoundingClientRect();
+    const viewWidth = Math.max(320, wrapRect.width);
+    const newHeight = (viewWidth * heightBase) / widthBase;
+    svg.style("height", newHeight + "px");
   }
 
   function debounce(fn, wait) {
@@ -440,62 +408,34 @@ svg {
     };
   }
 
-  /********** Modal behavior **********/
   function showCardAtClient(clientX, clientY) {
-    infoOverlay.style("display", "block");
-    infoCard.style("display", "block").attr("aria-hidden", "false");
+    overlay.style.display = "block";
+    infoCard.style("display", "block");
 
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-
-    const cw = window.innerWidth;
+    // position card near click but keep in viewport
     const cardNode = infoCard.node();
-    const computedW = Math.min(460, Math.max(260, Math.floor(cw * 0.42)));
-    infoCard.style("width", computedW + "px");
+    const rect = cardNode.getBoundingClientRect();
+    const cardW = rect.width;
+    const cardH = rect.height;
 
-    requestAnimationFrame(() => {
-      const cardW = cardNode.offsetWidth || computedW;
-      const cardH = cardNode.offsetHeight || 180;
-      let left = clientX + 12;
-      let top = clientY + 12;
+    const cw = document.documentElement.clientWidth;
 
-      if (left + cardW + 12 > cw) left = Math.max(12, clientX - cardW - 12);
-      if (top + cardH + 12 > window.innerHeight) top = Math.max(12, clientY - cardH - 12);
+    let left = clientX + 12;
+    let top = clientY + 12;
 
-      if (top + cardH > window.innerHeight - 6) top = window.innerHeight - cardH - 12;
-      if (left + cardW > cw - 6) left = Math.max(12, cw - cardW - 12);
-      if (left < 12) left = 12;
-      if (top < 12) top = 12;
+    if (left + cardW + 12 > cw) left = Math.max(12, clientX - cardW - 12);
+    if (top + cardH + 12 > window.innerHeight) top = Math.max(12, clientY - cardH - 12);
 
-      infoCard.style("left", left + "px").style("top", top + "px");
-      closeBtn.node().focus();
-    });
+    if (top + cardH > window.innerHeight - 6) top = window.innerHeight - cardH - 12;
+    if (left + cardW > cw - 6) left = Math.max(12, cw - cardW - 12);
+    if (left < 12) left = 12;
+    if (top < 12) top = 12;
+
+    infoCard.style("left", left + "px").style("top", top + "px");
+
+    // give keyboard users focus inside modal
+    closeBtn.focus();
   }
-  
-  function closeModal() {
-    infoOverlay.style("display", "none");
-    infoCard.style("display", "none").attr("aria-hidden", "true");
-    mobileInfoCard.style("display", "none");
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-    if (countriesGroup) countriesGroup.selectAll(".country").classed("active", false);
-  }
-
-  infoOverlay.on("click", () => closeModal());
-  closeBtn.on("click", () => closeModal());
-  mobileCloseBtn.on("click", () => closeModal());
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeModal();
-  });
-
-  document.addEventListener("click", (e) => {
-    const target = e.target;
-    if (infoCard.style("display") === "block") {
-      if (!target.closest || (!target.closest(".info-card") && !target.closest(".country"))) closeModal();
-    }
-  });
-
   </script>
 </body>
 </html>
