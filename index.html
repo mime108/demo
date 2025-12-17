@@ -11,7 +11,7 @@
   --asu-black: #000000;
   --asu-gold: rgb(255,198,39); /* #FFC627 */
   --asu-maroon: rgb(140,29,64); /* #8C1D40 */
-  --line-opacity: 0.04; 
+  --line-opacity: 0.04; /* subtle line opacity */
 }
 
 html, body {
@@ -31,26 +31,45 @@ body {
 }
 
     /* Countries */
-    .country { fill: #dfe0e4; stroke: #4b5563; stroke-width:0.5; cursor: default; pointer-events: none; transition: fill .12s, stroke .12s; }
+    .country { fill: #6b7280; stroke: #4b5563; stroke-width:0.5; cursor: default; pointer-events: none; transition: fill .12s, stroke .12s; }
     .country.has-data { fill: var(--asu-gold); stroke: rgba(255, 198, 39, 0.4); stroke-width:0.5; cursor: pointer; pointer-events: auto; }
-    .country:hover { fill: #b5b8bd; stroke: #374151; stroke-width:0.7; }
+    .country:hover { fill: #4b5563; stroke: #374151; stroke-width:0.7; }
     .country.has-data:hover { fill: rgb(230, 178, 35); stroke: rgba(230, 178, 35, 0.5); stroke-width:0.7; }
     .country.active { fill: #374151; stroke: #1f2937; stroke-width:1.0; }
     .country.has-data.active { fill: rgb(230, 178, 35); stroke: rgba(230, 178, 35, 0.6); stroke-width:1.0; }
 
+/* --- Visualization Title Section --- */
+.viz-header {
+  text-align: center;
+  padding: 20px 20px 10px 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
 
+.viz-title {
+  font-size: clamp(20px, 4vw, 32px);
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.3px;
+  color: #fff;
+}
+
+.viz-subtitle {
+  margin: 8px 0 0 0;
+  font-size: clamp(13px, 2vw, 15px);
+  color: #aaa;
+}
 
 /* Fix map container spacing so top and bottom feel equal */
 .map-wrap {
   margin: 0 auto;
-  padding: 10px 0;
+  padding: 0;
   max-width: 100%;
-  height: auto;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: transparent;
   border: none;
-  min-height: calc(100vh - 100px);
   position: relative;
 }
 
@@ -90,8 +109,8 @@ body {
 svg {
   display: block;
   width: 100%;
-  height: auto;
-  max-height: none;
+  height: 100%;
+  min-height: 400px;
 }
 #mapSvg {
   background: transparent;
@@ -105,9 +124,9 @@ svg {
       position:absolute; left:12px; top:12px; background:transparent; font-size:13px; color:#666;
     }
     
-    /* Zoom controls */
+    /* Zoom controls - fixed positioning */
     .zoom-controls {
-      position: absolute;
+      position: fixed;
       top: 10px;
       right: 10px;
       display: flex;
@@ -117,7 +136,7 @@ svg {
       padding: 8px;
       border-radius: 8px;
       border: 1px solid rgba(255, 198, 39, 0.15);
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(0, 0, 0, 0.5);
     }
     
     .zoom-btn {
@@ -209,7 +228,9 @@ svg {
     
     /* Mobile-specific styles */
     @media (max-width: 768px) {
-
+      .viz-header {
+        padding: 15px 15px 8px 15px;
+      }
       
       .info-card {
         display: none !important;
@@ -230,15 +251,14 @@ svg {
         height: 36px;
         font-size: 20px;
       }
-      
-      .map-wrap {
-        min-height: calc(100vh - 80px);
-      }
     }
   </style>
 </head>
 <body>
-
+    <div class="viz-header">
+  <h1 class="viz-title">Higher Education Across Africa</h1>
+  <p class="viz-subtitle">Click any country to view population, projections, and university data.</p>
+</div>
 
   <div class="map-wrap" id="mapWrap">
     <div class="loading" id="loadingText">Loading map…</div>
@@ -410,11 +430,6 @@ svg {
     const margin = 22;
     projection.fitExtent([[margin, margin], [widthBase - margin, heightBase - margin]], africaGeo);
     svg.selectAll("path.country").attr("d", path);
-
-    const wrapRect = mapWrap.getBoundingClientRect();
-    const viewWidth = Math.max(320, wrapRect.width);
-    const newHeight = (viewWidth * heightBase) / widthBase;
-    svg.style("height", newHeight + "px");
   }
 
   function debounce(fn, wait) {
