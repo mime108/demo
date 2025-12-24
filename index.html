@@ -163,6 +163,11 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       padding: 20px;
       z-index: 1000;
+      visibility: hidden;
+    }
+    
+    #africaCard.show {
+      visibility: visible;
     }
 
     .cardHead {
@@ -229,13 +234,20 @@
     /* Mobile adjustments */
     @media (max-width: 768px) {
       #africaMap {
-        overflow-y: auto;
+        overflow-y: scroll;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
       }
 
       #africaSvg {
         min-height: 100vh;
+        cursor: default;
+      }
+      
+      /* Hide zoom controls and source on mobile */
+      .zoom-controls,
+      .source-box {
+        display: none;
       }
 
       #africaCard {
@@ -251,8 +263,13 @@
         -webkit-overflow-scrolling: touch;
         padding: 60px 20px 32px 20px;
         border: none;
-        display: flex;
         flex-direction: column;
+        visibility: hidden;
+        display: flex;
+      }
+      
+      #africaCard.show {
+        visibility: visible;
       }
 
       .cardHead {
@@ -297,30 +314,8 @@
         font-size: 20px;
       }
 
-      .zoom-controls {
-        top: 8px;
-        right: 8px;
-        padding: 6px;
-      }
-
-      .zoom-btn {
-        width: 44px;
-        height: 44px;
-        font-size: 22px;
-      }
-
-      .source-box {
-        bottom: 8px;
-        left: 8px;
-        font-size: 10px;
-        padding: 6px 10px;
-        max-width: calc(100% - 16px);
-      }
-
       /* Hide map elements when card is open on mobile */
-      #africaMap.card-open #africaSvg,
-      #africaMap.card-open .zoom-controls,
-      #africaMap.card-open .source-box {
+      #africaMap.card-open #africaSvg {
         display: none;
       }
 
@@ -447,7 +442,10 @@
     });
 
     function hideCard() {
-      card.style.display = "none";
+      card.classList.remove("show");
+      setTimeout(() => {
+        card.style.display = "none";
+      }, 50);
       root.classList.remove("card-open");
       if (countriesGroup) countriesGroup.selectAll(".country").classed("active", false);
     }
@@ -467,6 +465,11 @@
 
     function showCardAt(clientX, clientY) {
       card.style.display = "block";
+      
+      // Small delay to ensure display:block is applied before adding show class
+      requestAnimationFrame(() => {
+        card.classList.add("show");
+      });
 
       if (isMobile()) {
         // Mobile: fullscreen card, hide map
