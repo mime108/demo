@@ -21,7 +21,19 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
+    /* Hide all scrollbars */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#africaMap::-webkit-scrollbar {
+  display: none;
+}
 
+html,
+body,
+#africaMap {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
     body {
       background: transparent;
     }
@@ -31,7 +43,7 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      overflow: auto;
+      overflow: hidden;
       background: transparent;
     }
 
@@ -41,6 +53,7 @@
       height: 100%;
       background: transparent;
       cursor: grab;
+      overflow: hidden;
     }
 
     #africaSvg.dragging {
@@ -148,7 +161,10 @@
     .source-box a:hover {
       text-decoration: underline;
     }
-
+    
+    svg {
+  overflow: hidden;
+}
     /* Info card - Desktop */
     #africaCard {
       position: fixed;
@@ -516,7 +532,7 @@ const stats = {
   },
   "BEN": {
     country: "Benin",
-    population: "14.5M",
+    population: "14.9M",
     gdp_per_capita: "$1,400",
     dominant_sector: "Agriculture (28%)",
     youth_population: "41.2%",
@@ -1622,46 +1638,43 @@ const stats = {
       }
     ]
   },
-  "MRT": {
-    country: "Mauritania",
-    population: "4.9M",
-    gdp_per_capita: "$2,400",
-    dominant_sector: "Services (45%)",
-    youth_population: "38.9%",
-    youth_unemployment: "12%",
-    universities: 4.0,
-    description: "Mauritania spans the Sahara and Sahel with a small, sparsely distributed population and an economy reliant on iron ore, fisheries, and, offshore gas. Drought, desertification, and urbanization pressures have significantly transformed traditional pastoral livelihoods. Thus, expanding access to schooling, especially for girls and rural communities, and strengthening vocational and higher education are central to broadening growth opportunities.",
-    sources: [
-      {
-        label: "Population Data",
-        url: "https://www.worldometers.info/world-population/mauritania-population/"
-      },
-      {
-        label: "GDP & Economic Data",
-        url: "https://statisticstimes.com/economy/country/mauritania-gdp-per-capita.php"
-      },
-      {
-        label: "University Information",
-        url: "https://www.unirank.org/mr/"
-      },
-      {
-        label: "Sector",
-        url: "https://ilostat.ilo.org/data/country-profiles/"
-      },
-      {
-        label: "Youth Population",
-        url: "https://en.wikipedia.org/wiki/World_Population_Prospects"
-      },
-      {
-        label: "Youth Unemployment",
-        url: "https://data.worldbank.org/indicator/SL.UEM.1524.ZS?locations=MR"
-      },
-      {
-        label: "Description",
-        url: "https://www.cia.gov/the-world-factbook/about/archives/2022/countries/mauritania/"
-      }
-    ]
-  },
+"MRT": {
+  country: "Mauritania",
+  population: "5.17M",
+  gdp_per_capita: "$2,110",
+  dominant_sector: "Services (43.2%)",
+  youth_population: "N/A",
+  youth_unemployment: "23.2%",
+  universities: 4.0,
+  description: "Mauritania spans the Sahara and Sahel with a small, sparsely distributed population and an economy reliant on iron ore mining, fisheries, and emerging offshore gas resources. Environmental pressures such as drought, desertification, and rapid urbanization have disrupted traditional pastoral livelihoods. Expanding access to basic education, improving education quality in rural areas, and strengthening technical and higher education are key priorities for diversifying the economy and improving youth employment outcomes.",
+  sources: [
+    {
+      label: "Population Data (2024)",
+      url: "https://data.worldbank.org/country/mauritania"
+    },
+    {
+      label: "GDP per Capita (Current US$, 2024)",
+      url: "https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?locations=MR"
+    },
+    {
+      label: "Economic Sector Composition (Services % of GDP)",
+      url: "https://www.theglobaleconomy.com/Mauritania/Share_of_services/"
+    },
+    {
+      label: "Youth Unemployment (Ages 15–24, ILO Modeled Estimate)",
+      url: "https://fred.stlouisfed.org/series/SLUEM1524ZSMRT"
+    },
+    {
+      label: "Universities",
+      url: "https://www.unirank.org/mr/"
+    },
+    {
+      label: "Country Description & Economic Context",
+      url: "https://www.cia.gov/the-world-factbook/countries/mauritania/"
+    }
+  ]
+},
+
   "MUS": {
     country: "Mauritius",
     population: "1.3M",
